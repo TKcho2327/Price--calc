@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>구매대행 판매가 계산기 v0.4</title>
+<title>구매대행 판매가 계산기</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   :root{ --border:#e5e7eb; --text:#111827; --muted:#6b7280; --bg:#ffffff; --chip:#f3f4f6; }
   *{box-sizing:border-box}
@@ -30,9 +35,8 @@
 </style>
 </head>
 <body>
-  <h1>구매대행 판매가 계산기 <span class="muted">v0.4</span></h1>
+  <h1>구매대행 판매가 계산기</h1>
 
-  <!-- Minimal inputs -->
   <div class="card">
     <div class="row">
       <div class="field">
@@ -101,6 +105,11 @@
   </div>
 
 <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  });
+}
 function fmtKRW(n){ if (isNaN(n)) return "-"; return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(n)) + "원"; }
 function roundTo(n, unit){ if(!unit || unit===1) return n; return Math.round(n / unit) * unit; }
 function val(id){ const el = document.getElementById(id); const v = parseFloat(el.value); return isNaN(v) ? 0 : v; }
@@ -137,7 +146,6 @@ function compute(){
 ['price_usd','shipping_krw'].forEach(id=>{
   document.getElementById(id).addEventListener('input', compute);
 });
-// advanced inputs listeners (when panel opened later)
 document.addEventListener('input', (e)=>{
   if(['fx','us_tax','margin','fee','vat','rounding'].includes(e.target.id)) compute();
 });
