@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>구매대행 판매가 계산기</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif; margin: 24px; }
+  h1 { font-size: 20px; margin-bottom: 8px; }
+  .desc { color:#444; margin-bottom:16px; }
+  .card { border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:16px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .field { flex:1 1 220px; min-width:220px; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input[type="number"] { width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; font-size:16px; }
+  .muted { color:#666; font-size:12px; }
+  .result { font-size:18px; font-weight:700; }
+  .result-line { display:flex; justify-content:space-between; margin:8px 0; }
+  .total { font-size:22px; font-weight:800; }
+  details { margin-top:6px; }
+  .foot { color:#6b7280; font-size:12px; margin-top:16px; }
+  .pill { display:inline-block; padding:4px 10px; border:1px solid #e5e7eb; border-radius:999px; font-size:12px; margin-right:6px; cursor:pointer;}
+  .btn { padding:10px 14px; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa; cursor:pointer; }
+</style>
+</head>
+<body>
+  <h1>구매대행 판매가 계산기</h1>
+  <div class="desc">제품가(USD)와 국제 배송비(KRW)만 입력하면 최종 소비자가(부가세 포함)가 자동 계산됩니다.<br>
+  *예시값(USD 100 / 배송비 20,000원)으로 시작합니다.</div>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label>제품가 (USD)</label>
+        <input id="price_usd" type="number" min="0" step="0.01" value="100" />
+      </div>
+      <div class="field">
+        <label>국제 배송비 (KRW)</label>
+        <input id="shipping_krw" type="number" min="0" step="1" value="20000" />
+      </div>
+    </div>
+    <details>
+      <summary>설정 (고정값 보기/수정)</summary>
+      <div class="row" style="margin-top:10px;">
+        <div class="field">
+          <label>환율 (KRW/1 USD)</label>
+          <input id="fx" type="number" min="500" step="1" value="1400">
+        </div>
+        <div class="field">
+          <label>미국 세율</label>
+          <input id="us_tax" type="number" min="0" max="1" step="0.01" value="0.10">
+        </div>
+        <div class="field">
+          <label>마진율</label>
+          <input id="margin" type="number" min="0" max="1" step="0.01" value="0.30">
+        </div>
+        <div class="field">
+          <label>플랫폼 수수료율</label>
+          <input id="fee" type="number" min="0" max="1" step="0.01" value="0.15">
+        </div>
+        <div class="field">
+          <label>한국 부가세</label>
+          <input id="vat" type="number" min="0" max="1" step="0.01" value="0.10">
+        </div>
+      </div>
+    </details>
+    <div style="margin-top:10px;"><button class="btn" onclick="compute()">다시 계산</button></div>
+  </div>
+
+  <div class="card">
+    <div class="result-line"><span>① 원화 환산 (USD×환율)</span><span id="r1" class="result">-</span></div>
+    <div class="result-line"><span>② 미국 세금 포함</span><span id="r2" class="result">-</span></div>
+    <div class="result-line"><span>③ 배송비 포함</span><span id="r3" class="result">-</span></div>
+    <div class="result-line"><span>④ 마진 적용</span><span id="r4" class="result">-</span></div>
+    <div class="result-line"><span>⑤ 플랫폼 수수료 적용</span><span id="r5" class="result">-</span></div>
+    <div class="result-line total"><span>💥 최종 소비자가 (부가세 포함)</span><span id="r6">-</span></div>
+    <div class="muted">((USD×환율)×(1+미국세) + 배송비) × (1+마진) × (1+수수료) × (1+부가세)</div>
+  </div>
+
+  <div class="foot">주의: 실제 통관·관세, 해외결제 수수료, 환율 스프레드 등은 별도 고려해야 합니다.</div>
+
+<script>
+function fmtKRW(n){ 
+  if (isNaN(n)) return "-";
+  return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(n)) + "원";
+}
+function val(id){ 
+  const el = document.getElementById(id);
+  const v = parseFloat(el.value);
+  return isNaN(v) ? 0 : v;
+}
+function compute(){
+  const priceUSD = val('price_usd');
+  const shipping = val('shipping_krw');
+  const fx = val('fx');
+  const usTax = val('us_tax');
+  const margin = val('margin');
+  const fee = val('fee');
+  const vat = val('vat');
+
+  const r1 = priceUSD * fx;                  // 원화 환산
+  const r2 = r1 * (1 + usTax);               // 미국세 포함
+  const r3 = r2 + shipping;                  // 배송비 포함
+  const r4 = r3 * (1 + margin);               // 마진 적용
+  const r5 = r4 * (1 + fee);                  // 수수료 적용
+  const r6 = r5 * (1 + vat);                  // 부가세 포함
+
+  document.getElementById('r1').textContent = fmtKRW(r1);
+  document.getElementById('r2').textContent = fmtKRW(r2);
+  document.getElementById('r3').textContent = fmtKRW(r3);
+  document.getElementById('r4').textContent = fmtKRW(r4);
+  document.getElementById('r5').textContent = fmtKRW(r5);
+  document.getElementById('r6').textContent = fmtKRW(r6);
+}
+['price_usd','shipping_krw','fx','us_tax','margin','fee','vat'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', compute);
+});
+window.addEventListener('DOMContentLoaded', compute);
+</script>
+</body>
+</html>
